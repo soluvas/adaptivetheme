@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="adaptivetheme">
+	<property file="theme.properties"/>
+	<property file="development.properties"/>
+	<property file="deploy.properties"/>
+
+	<fail unless="theme.name"/>
+	
+	<target name="symlink.create" description="Create symlinks in sites/all/themes/${theme.name}. It will not overwrite existing files/links.">
+		<fail unless="drupal.dir"/>
+		<symlink link="${drupal.dir}/sites/all/themes/${theme.name}" resource="${basedir}" failonerror="false"/>
+	</target>
+    
+	<target name="symlink.delete" description="Delete symlinks in sites/all/themes/${theme.name}. It will only delete files or symlinks, not directories.">
+		<fail unless="drupal.dir"/>
+		<symlink action="delete" link="${drupal.dir}/sites/all/themes/${theme.name}" />
+	</target>
+
+    <target name="deploy"
+		description="Deploy ${theme.name} theme files to ${server.user}@${server.host}:${server.dir} at port ${server.port}. Useful during development.">
+    	<fail unless="server.user"/>
+    	<fail unless="server.host"/>
+    	<fail unless="server.port"/>
+    	<fail unless="server.dir"/>
+    	<echo message="Deploying ${theme.name} theme files to ${server.user}@${server.host}:${server.dir} at port ${server.port}..."/>
+		<exec executable="rsync">
+			<arg value="-e"/>
+			<arg value="ssh -p${server.port}"/>
+			<arg value="-vza"/>
+			<arg value="--delete"/>
+			<arg value="--exclude"/><arg value=".git"/>
+			<arg value="--exclude"/><arg value=".gitignore"/>
+			<arg value="--exclude"/><arg value=".project"/>
+			<arg value="--exclude"/><arg value="build.xml"/>
+			<arg value="--exclude"/><arg value="*.properties"/>
+			<arg value="--exclude"/><arg value="*.sample"/>
+			<arg value="."/>
+			<arg value="${server.user}@${server.host}:${server.dir}/sites/all/themes/${theme.name}" />
+		</exec>
+    	<antcall target="cache.clear.production"/>
+    </target>
+
+	<target name="cache.clear.production" description="Clear Cache on Production instance.">
+		<fail unless="server.host"/>
+		<fail unless="server.port"/>
+		<fail unless="server.user"/>
+		<fail unless="server.dir"/>
+		<fail unless="server.url"/>
+		<sshexec host="${server.host}" username="${server.user}" port="${server.port}"
+			keyfile="${user.home}/.ssh/id_rsa" trust="true"
+			command="cd '${server.dir}' &amp;&amp; $HOME/drush/drush -l '${server.url}' cc all"/>
+	</target>
+	
+</project>

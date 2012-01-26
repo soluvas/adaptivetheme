@@ -1,0 +1,5 @@
+server.host=example.com
+server.user=example
+server.dir=public_html/example
+server.port=22
+server.url=http://example.com/
